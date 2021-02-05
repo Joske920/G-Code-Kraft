@@ -1,0 +1,242 @@
+PROC XVG(VAR REAL ARRAYVG[,11])
+DEF REAL DOORN1,POS1,DOORN2,POS2,DOORN3,POS3,DOORN4,POS4
+DEF INT TELLER
+STOPRE
+OVR=100
+
+G90 G00 G17
+FFWON SOFT CPRECON
+
+M53 ;DEUR KLEMMEN
+
+FOR TELLER = 0 TO 7
+   IF (ARRAYVG[TELLER,1] <> 0) OR (ARRAYVG[TELLER,2] <> 0)
+      IF (R2 == 0)
+         IF (R1 == 6)
+            IF (ARRAYVG[TELLER,10] > 0)
+               IF (ARRAYVG[TELLER,1] <> 0) OR (ARRAYVG[TELLER,2] <> 0)
+                  DOORN1 = ARRAYVG[TELLER,10] + ARRAYVG[TELLER,1]
+                  POS1 = 0 + ARRAYVG[TELLER,0] + ARRAYVG[TELLER,2]
+               ENDIF
+               IF (ARRAYVG[TELLER,3] <> 0) OR (ARRAYVG[TELLER,4] <> 0)
+                  DOORN2 = ARRAYVG[TELLER,10] + ARRAYVG[TELLER,3]
+                  POS2 = 0 + ARRAYVG[TELLER,0] + ARRAYVG[TELLER,4]
+               ENDIF
+               IF (ARRAYVG[TELLER,5] <> 0) OR (ARRAYVG[TELLER,6] <> 0)
+                  DOORN3 = ARRAYVG[TELLER,10] + ARRAYVG[TELLER,5]
+                  POS3 = 0 + ARRAYVG[TELLER,0] + ARRAYVG[TELLER,6]
+               ENDIF
+               IF (ARRAYVG[TELLER,7] <> 0) OR (ARRAYVG[TELLER,8] <> 0)
+                  DOORN4 = ARRAYVG[TELLER,10] + ARRAYVG[TELLER,7]
+                  POS4 = 0 + ARRAYVG[TELLER,0] + ARRAYVG[TELLER,8]
+               ENDIF
+              ELSE
+               DOORN1 = ARRAYVG[TELLER,1]
+               POS1 = 0 + ARRAYVG[TELLER,0] + ARRAYVG[TELLER,2]
+               DOORN2 = ARRAYVG[TELLER,3]
+               POS2 = 0 + ARRAYVG[TELLER,0] + ARRAYVG[TELLER,4]
+               DOORN3 = ARRAYVG[TELLER,5]
+               POS3 = 0 + ARRAYVG[TELLER,0] + ARRAYVG[TELLER,6]
+               DOORN4 = ARRAYVG[TELLER,7]
+               POS4 = 0 + ARRAYVG[TELLER,0] + ARRAYVG[TELLER,8]
+            ENDIF
+         ENDIF
+         IF (R1 == 7)
+            IF (ARRAYVG[TELLER,10] > 0)
+               IF (ARRAYVG[TELLER,1] <> 0) OR (ARRAYVG[TELLER,2] <> 0)
+                  DOORN4 = ARRAYVG[TELLER,10] + ARRAYVG[TELLER,1]
+                  POS4 = 0 + ARRAYVG[TELLER,0] + ARRAYVG[TELLER,2]
+               ENDIF
+               IF (ARRAYVG[TELLER,3] <> 0) OR (ARRAYVG[TELLER,4] <> 0)
+                  DOORN3 = ARRAYVG[TELLER,10] + ARRAYVG[TELLER,3]
+                  POS3 = 0 + ARRAYVG[TELLER,0] + ARRAYVG[TELLER,4]
+               ENDIF
+               IF (ARRAYVG[TELLER,5] <> 0) OR (ARRAYVG[TELLER,6] <> 0)
+                  DOORN2 = ARRAYVG[TELLER,10] + ARRAYVG[TELLER,5]
+                  POS2 = 0 + ARRAYVG[TELLER,0] + ARRAYVG[TELLER,6]
+               ENDIF
+               IF (ARRAYVG[TELLER,7] <> 0) OR (ARRAYVG[TELLER,8] <> 0)
+                  DOORN1 = ARRAYVG[TELLER,10] + ARRAYVG[TELLER,7]
+                  POS1 = 0 + ARRAYVG[TELLER,0] + ARRAYVG[TELLER,8]
+               ENDIF
+              ELSE
+               DOORN4 = ARRAYVG[TELLER,1]
+               POS4 = 0 + ARRAYVG[TELLER,0] + ARRAYVG[TELLER,2]
+               DOORN3 = ARRAYVG[TELLER,3]
+               POS3 = 0 + ARRAYVG[TELLER,0] + ARRAYVG[TELLER,4]
+               DOORN2 = ARRAYVG[TELLER,5]
+               POS2 = 0 + ARRAYVG[TELLER,0] + ARRAYVG[TELLER,6]
+               DOORN1 = ARRAYVG[TELLER,7]
+               POS1 = 0 + ARRAYVG[TELLER,0] + ARRAYVG[TELLER,8]
+            ENDIF
+         ENDIF
+        ELSE
+         IF (R1 == 6)
+            IF (ARRAYVG[TELLER,10] > 0)
+               IF (ARRAYVG[TELLER,1] <> 0) OR (ARRAYVG[TELLER,2] <> 0)
+                  DOORN1 = ARRAYVG[TELLER,10] + ARRAYVG[TELLER,1]
+                  POS1 = 0 - ARRAYVG[TELLER,0] - ARRAYVG[TELLER,2]
+               ENDIF
+               IF (ARRAYVG[TELLER,3] <> 0) OR (ARRAYVG[TELLER,4] <> 0)
+                  DOORN2 = ARRAYVG[TELLER,10] + ARRAYVG[TELLER,3]
+                  POS2 = 0 - ARRAYVG[TELLER,0] - ARRAYVG[TELLER,4]
+               ENDIF
+               IF (ARRAYVG[TELLER,5] <> 0) OR (ARRAYVG[TELLER,6] <> 0)
+                  DOORN3 = ARRAYVG[TELLER,10] + ARRAYVG[TELLER,5]
+                  POS3 = 0 - ARRAYVG[TELLER,0] - ARRAYVG[TELLER,6]
+               ENDIF
+               IF (ARRAYVG[TELLER,7] <> 0) OR (ARRAYVG[TELLER,8] <> 0)
+                  DOORN4 = ARRAYVG[TELLER,10] + ARRAYVG[TELLER,7]
+                  POS4 = 0 - ARRAYVG[TELLER,0] - ARRAYVG[TELLER,8]
+               ENDIF
+              ELSE
+               DOORN1 = ARRAYVG[TELLER,1]
+               POS1 = 0 - ARRAYVG[TELLER,0] - ARRAYVG[TELLER,2]
+               DOORN2 = ARRAYVG[TELLER,3]
+               POS2 = 0 - ARRAYVG[TELLER,0] - ARRAYVG[TELLER,4]
+               DOORN3 = ARRAYVG[TELLER,5]
+               POS3 = 0 - ARRAYVG[TELLER,0] - ARRAYVG[TELLER,6]
+               DOORN4 = ARRAYVG[TELLER,7]
+               POS4 = 0 - ARRAYVG[TELLER,0] - ARRAYVG[TELLER,8]
+            ENDIF
+         ENDIF
+         IF (R1 == 7)
+            IF (ARRAYVG[TELLER,10] > 0)
+               IF (ARRAYVG[TELLER,1] <> 0) OR (ARRAYVG[TELLER,2] <> 0)
+                  DOORN4 = ARRAYVG[TELLER,10] + ARRAYVG[TELLER,1]
+                  POS4 = 0 - ARRAYVG[TELLER,0] - ARRAYVG[TELLER,2]
+               ENDIF
+               IF (ARRAYVG[TELLER,3] <> 0) OR (ARRAYVG[TELLER,4] <> 0)
+                  DOORN3 = ARRAYVG[TELLER,10] + ARRAYVG[TELLER,3]
+                  POS3 = 0 - ARRAYVG[TELLER,0] - ARRAYVG[TELLER,4]
+               ENDIF
+               IF (ARRAYVG[TELLER,5] <> 0) OR (ARRAYVG[TELLER,6] <> 0)
+                  DOORN2 = ARRAYVG[TELLER,10] + ARRAYVG[TELLER,5]
+                  POS2 = 0 - ARRAYVG[TELLER,0] - ARRAYVG[TELLER,6]
+               ENDIF
+               IF (ARRAYVG[TELLER,7] <> 0) OR (ARRAYVG[TELLER,8] <> 0)
+                  DOORN1 = ARRAYVG[TELLER,10] + ARRAYVG[TELLER,7]
+                  POS1 = 0 - ARRAYVG[TELLER,0] - ARRAYVG[TELLER,8]
+               ENDIF
+              ELSE
+               DOORN4 = ARRAYVG[TELLER,1]
+               POS4 = 0 - ARRAYVG[TELLER,0] - ARRAYVG[TELLER,2]
+               DOORN3 = ARRAYVG[TELLER,3]
+               POS3 = 0 - ARRAYVG[TELLER,0] - ARRAYVG[TELLER,4]
+               DOORN2 = ARRAYVG[TELLER,5]
+               POS2 = 0 - ARRAYVG[TELLER,0] - ARRAYVG[TELLER,6]
+               DOORN1 = ARRAYVG[TELLER,7]
+               POS1 = 0 - ARRAYVG[TELLER,0] - ARRAYVG[TELLER,8]
+            ENDIF
+         ENDIF
+      ENDIF
+      IF (ARRAYVG[TELLER,9] == 0) OR (ARRAYVG[TELLER,9] == 12)
+         G512 T1 D1 ;VIJSGATBOOR SELECTIE
+        ELSE
+         G511 T1 D1 ;FREES SELECTIE
+      ENDIF
+      IF (DOORN1 > 0)
+         IF (ARRAYVG[TELLER,9] == 0) OR (ARRAYVG[TELLER,9] == 12)
+				STOPRE
+				IF (_WACHT5 > 0)
+					STOPRE
+					_WACHT6 = 1
+					STOPRE
+               G90 G00 X=POS1 Y=DOORN1
+               STOPRE
+               WHILE (_WACHT6 == 1) AND (_WACHT5 > 0)
+                  G04 F0.1
+                  STOPRE
+               ENDWHILE
+               STOPRE
+            ENDIF
+				_WACHT6 = 2
+				STOPRE
+            M73 ;MOTOR VOORUIT STUREN
+            G04 F0.1
+            G90 G00 X=POS1 Y=DOORN1
+				STOPRE
+				_WACHT6 = 1
+            M74 ;MOTOR ACHTERUIT STUREN
+           ELSE
+            IF (ARRAYVG[TELLER,9] >= 14)
+               G90 G00 X=POS1 Y=DOORN1
+               M71 M75
+               G42 G01 X=(POS1 + (ARRAYVG[TELLER,9]/2))
+                   G02 I=-(ARRAYVG[TELLER,9]/2)
+               G40 G00 X=POS1
+               M72 M76
+               STOPRE
+            ENDIF
+         ENDIF
+      ENDIF
+      IF (DOORN2 > 0)
+         IF (ARRAYVG[TELLER,9] == 0) OR (ARRAYVG[TELLER,9] == 12)
+            G90 G00 X=POS2 Y=DOORN2
+            M73 ;MOTOR VOORUIT STUREN
+            G4 F0.1
+            G90 G00 X=POS2 Y=DOORN2
+            M74 ;MOTOR ACHTERUIT STUREN
+           ELSE
+            IF (ARRAYVG[TELLER,9] >= 14)
+               G90 G00 X=POS2 Y=DOORN2
+               M71 M75
+               G42 G01 X=(POS2 + (ARRAYVG[TELLER,9]/2))
+                   G02 I=-(ARRAYVG[TELLER,9]/2)
+               G40 G00 X=POS2
+               M72 M76
+               STOPRE
+            ENDIF
+         ENDIF
+      ENDIF
+      IF (DOORN3 > 0)
+         IF (ARRAYVG[TELLER,9] == 0) OR (ARRAYVG[TELLER,9] == 12)
+            G90 G00 X=POS3 Y=DOORN3
+            M73 ;MOTOR VOORUIT STUREN
+            G4 F0.1
+            G90 G00 X=POS3 Y=DOORN3
+            M74 ;MOTOR ACHTERUIT STUREN
+           ELSE
+            IF (ARRAYVG[TELLER,9] >= 14)
+               G90 G00 X=POS3 Y=DOORN3
+               M71 M75
+               G42 G01 X=(POS3 + (ARRAYVG[TELLER,9]/2))
+                   G02 I=-(ARRAYVG[TELLER,9]/2)
+               G40 G00 X=POS3
+               M72 M76
+               STOPRE
+            ENDIF
+         ENDIF
+      ENDIF
+      IF (DOORN4 > 0)
+         IF (ARRAYVG[TELLER,9] == 0) OR (ARRAYVG[TELLER,9] == 12)
+            G90 G00 X=POS4 Y=DOORN4
+            M73 ;MOTOR VOORUIT STUREN
+            G4 F0.1
+            G90 G00 X=POS4 Y=DOORN4
+            M74 ;MOTOR ACHTERUIT STUREN
+           ELSE
+            IF (ARRAYVG[TELLER,9] >= 14)
+               G90 G00 X=POS4 Y=DOORN4
+               M71 M75
+               G42 G01 X=(POS4 + (ARRAYVG[TELLER,9]/2))
+                   G02 I=-(ARRAYVG[TELLER,9]/2)
+               G40 G00 X=POS4
+               M72 M76
+               STOPRE
+            ENDIF
+         ENDIF
+      ENDIF
+   ENDIF
+   STOPRE
+ENDFOR
+FFWOF CPRECOF
+
+IF (R5 == 1)
+   M99
+ENDIF
+
+EINDE:
+
+M17 ; ONDERPROGRAMMA EINDE
+ENDPROC

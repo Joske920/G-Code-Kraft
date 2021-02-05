@@ -1,0 +1,388 @@
+PROC XVPL(VAR REAL ARRAYVPL[,9])
+DEF REAL DIEPTEMEM,LINKS,RECHTS,VERSCHUIVING,LENGTE,BREEDTE,DIEPTE,KRUKTOTBOVEN,CENTER,RADIUS,SNELHEID,BOCHTSNELHEID,TOOLRADIUS,XSTART
+DEF INT TELLER,AANTAL_STAPPEN,STAP,CHECK,M_KEUZE
+
+EXTERN POSITIONV20(AXIS, REAL, STRING[6], INT)
+STOPRE
+CHECK = 0
+_WACHT5 = 0
+FOR TELLER = 0 TO 7
+   IF ARRAYVPL[TELLER,3] > 0
+      CHECK = 1
+   ENDIF
+ENDFOR
+STOPRE
+
+IF CHECK == 0 GOTOF EINDE
+
+SNELHEID = 15000
+BOCHTSNELHEID = 3000
+
+OVR=100
+IF (R4 == 0) GOTOF SNEL
+OVR=50
+SNEL:
+
+G90 G00 G18
+M76 M77; Op 0 graden zetten
+IF (($A_DBB[112] == 10) OR ($A_DBB[112] == 20))
+   POSITIONV20(V5, DEURBREEDTE_V5, GEWICHT_V5, 20)
+ENDIF
+STOPRE
+M53 ;DEUR KLEMMEN
+
+FOR TELLER = 0 TO 7
+   IF ARRAYVPL[TELLER,3] > 0
+      CENTER = ARRAYVPL[TELLER,5]
+      RADIUS = ARRAYVPL[TELLER,6]
+      M_KEUZE = ARRAYVPL[TELLER,7]
+      DIEPTE = ARRAYVPL[TELLER,3]
+
+      IF M_KEUZE == 0
+         IF (R2 == 0) ;AND (RECHTS > 2020)
+            M_KEUZE = 2 ;2 ;rechtse motor
+           ELSE
+            M_KEUZE = 1 ;linkse motor 1=G512 2=G513
+         ENDIF
+      ENDIF
+      AANTAL_STAPPEN = ARRAYVPL[TELLER,8]
+      IF AANTAL_STAPPEN == 0
+         AANTAL_STAPPEN = 1
+      ENDIF
+
+      DIEPTEMEM = DIEPTE / AANTAL_STAPPEN
+
+      IF M_KEUZE == 2 ;RECHTSE MOTOR GESELECTEERD
+         M74 ;LINKSE MOTOR ACHTERUIT STUREN
+         G00 G513 T3 D1 Y=-25 Z=CENTER
+         M79 ;RECHTSE MOTOR VOORUIT STUREN
+        ELSE ; == 1 LINKSE MOTOR GESELECTEERD
+         M80 ;RECHTSE MOTOR ACHTERUIT STUREN
+         G00 G512 T2 D1 Y=-25 Z=CENTER
+         M73 ;LINKSE MOTOR VOORUIT STUREN
+      ENDIF
+
+      LINKS = 0
+      RECHTS = 0
+      TOOLRADIUS = $P_TOOLR
+      VERSCHUIVING = ARRAYVPL[TELLER,0]
+      LENGTE = ARRAYVPL[TELLER,1] + 0.4
+      BREEDTE = ARRAYVPL[TELLER,2]
+      KRUKTOTBOVEN = ARRAYVPL[TELLER,4] + 0.2
+
+      IF R2 == 0 ; LINKSE DEUR
+         IF RADIUS > 0
+            IF RADIUS < TOOLRADIUS
+               LINKS = 0 + VERSCHUIVING - LENGTE + KRUKTOTBOVEN + TOOLRADIUS
+               RECHTS = 0 + VERSCHUIVING + KRUKTOTBOVEN - TOOLRADIUS
+              ELSE
+               LINKS = 0 + VERSCHUIVING - LENGTE + KRUKTOTBOVEN + RADIUS
+               RECHTS = 0 + VERSCHUIVING + KRUKTOTBOVEN - RADIUS
+            ENDIF
+           ELSE
+            LINKS = 0 + VERSCHUIVING - LENGTE + KRUKTOTBOVEN + (BREEDTE/2)
+            RECHTS = 0 + VERSCHUIVING + KRUKTOTBOVEN - (BREEDTE/2)
+         ENDIF
+        ELSE ; RECHTSE DEUR
+         IF RADIUS > 0
+            IF RADIUS < TOOLRADIUS
+               LINKS = 0 - VERSCHUIVING - KRUKTOTBOVEN + TOOLRADIUS
+               RECHTS = 0 - VERSCHUIVING + LENGTE - KRUKTOTBOVEN - TOOLRADIUS
+              ELSE
+               LINKS = 0 - VERSCHUIVING - KRUKTOTBOVEN + RADIUS
+               RECHTS = 0 - VERSCHUIVING + LENGTE - KRUKTOTBOVEN - RADIUS 
+            ENDIF
+           ELSE
+            LINKS = 0 - VERSCHUIVING - KRUKTOTBOVEN + (BREEDTE/2)
+            RECHTS = 0 - VERSCHUIVING + LENGTE - KRUKTOTBOVEN - (BREEDTE/2)
+         ENDIF
+      ENDIF
+
+      G90 G00 Y=-25
+      IF R2 == 0 ;LINKSE DEUR
+         XSTART = (0+VERSCHUIVING)
+        ELSE     ;RECHTSE DEUR
+         XSTART = (0-VERSCHUIVING)
+      ENDIF
+
+      FOR STAP = 1 TO AANTAL_STAPPEN
+         IF SNELHEID > 0
+            G01 F=SNELHEID
+           ELSE
+            G01 F=15000
+            SNELHEID = 15000
+            BOCHTSNELHEID = 6000
+         ENDIF
+         FFWON SOFT CPRECON
+         G90 G00 X=XSTART Z=CENTER
+
+         STOPRE
+         _WACHT5 = 1
+         STOPRE
+         WHILE (_WACHT6 == 2) OR (_WACHT7 == 2)
+            G04 F0.1
+            STOPRE
+         ENDWHILE
+         STOPRE
+
+         G90 G01 Y=(DIEPTEMEM * STAP) F=BOCHTSNELHEID
+         STOPRE
+         IF BREEDTE <= (TOOLRADIUS*2)
+            G90 G01 Z=CENTER
+            G90 G01 X=LINKS F=SNELHEID
+            G90 G01 X=RECHTS
+           ELSE
+            IF RADIUS > 0
+               IF RADIUS > TOOLRADIUS
+                  IF M_KEUZE == 1
+                     STOPRE
+                     G90 G64 G41 G01 Z=(CENTER-(BREEDTE/2)) F=BOCHTSNELHEID
+                         G01 X=LINKS F=SNELHEID
+                         G03 X=(LINKS-RADIUS) Z=((CENTER-(BREEDTE/2))+RADIUS) CR=RADIUS F=BOCHTSNELHEID
+                         IF (_WACHT6 > 0) OR (_WACHT7 > 0)
+                            G01 G40 X=LINKS Z=CENTER
+                            G01 G00 Y=-5
+                            STOPRE
+                            _WACHT5 = 0
+                            G04 F0.5
+                            STOPRE
+                            _WACHT5 = 1
+                            STOPRE
+                            WHILE (_WACHT6 == 2) OR (_WACHT7 == 2)
+                               G04 F0.1
+                               STOPRE
+                            ENDWHILE
+                            STOPRE
+                            G01 Y=(DIEPTEMEM * STAP)
+                            G01 G41 X=(LINKS-RADIUS) Z=((CENTER-(BREEDTE/2))+RADIUS)
+                         ENDIF
+                         G01 Z=((CENTER+(BREEDTE/2))-RADIUS)
+                         G03 X=LINKS Z=(CENTER+(BREEDTE/2)) CR=RADIUS
+                         G01 X=RECHTS F=SNELHEID
+                         G03 X=(RECHTS+RADIUS) Z=((CENTER+(BREEDTE/2))-RADIUS) CR=RADIUS F=BOCHTSNELHEID
+                         IF (_WACHT6 > 0) OR (_WACHT7 > 0)
+                            G01 G40 X=RECHTS Z=CENTER
+                            G01 G00 Y=-5
+                            STOPRE
+                            _WACHT5 = 0
+                            G04 F0.5
+                            STOPRE
+                            _WACHT5 = 1
+                            STOPRE
+                            WHILE (_WACHT6 == 2) OR (_WACHT7 == 2)
+                               G04 F0.1
+                               STOPRE
+                            ENDWHILE
+                            STOPRE
+                            G01 Y=(DIEPTEMEM * STAP)
+                            G01 G41 X=(RECHTS+RADIUS) Z=((CENTER+(BREEDTE/2))-RADIUS)
+                         ENDIF
+                         G01 Z=((CENTER-(BREEDTE/2))+RADIUS)
+                         G03 X=RECHTS Z=(CENTER-(BREEDTE/2)) CR=RADIUS
+                         G01 X=XSTART F=SNELHEID
+                     G40 G01 Z=CENTER
+                  ENDIF
+                  IF M_KEUZE == 9 ; oude prog
+                     STOPRE
+                     G90 G64 G42 G01 Z=(CENTER+(BREEDTE/2)) F=BOCHTSNELHEID
+                         G01 X=LINKS F=SNELHEID
+                         G02 X=(LINKS-RADIUS) Z=((CENTER+(BREEDTE/2))-RADIUS) CR=RADIUS F=BOCHTSNELHEID
+                         IF (_WACHT6 > 0) OR (_WACHT7 > 0)
+                            G01 G40 X=LINKS Z=CENTER
+                            G01 G00 Y=-5
+                            STOPRE
+                            _WACHT5 = 0
+                            G04 F0.5
+                            STOPRE
+                            _WACHT5 = 1
+                            STOPRE
+                            WHILE (_WACHT6 == 2) OR (_WACHT7 == 2)
+                               G04 F0.1
+                               STOPRE
+                            ENDWHILE
+                            STOPRE
+                            G01 Y=(DIEPTEMEM * STAP)
+                            G01 G42 X=(LINKS-RADIUS) Z=((CENTER+(BREEDTE/2))-RADIUS)
+                         ENDIF
+                         G01 Z=((CENTER-(BREEDTE/2))+RADIUS)
+                         G02 X=LINKS Z=(CENTER-(BREEDTE/2)) CR=RADIUS
+                         G01 X=RECHTS F=SNELHEID
+                         G02 X=(RECHTS+RADIUS) Z=((CENTER-(BREEDTE/2))+RADIUS) CR=RADIUS F=BOCHTSNELHEID
+                         IF (_WACHT6 > 0) OR (_WACHT7 > 0)
+                            G01 G40 X=RECHTS Z=CENTER
+                            G01 G00 Y=-5
+                            STOPRE
+                            _WACHT5 = 0
+                            G04 F0.5
+                            STOPRE
+                            _WACHT5 = 1
+                            STOPRE
+                            WHILE (_WACHT6 == 2) OR (_WACHT7 == 2)
+                               G04 F0.1
+                               STOPRE
+                            ENDWHILE
+                            STOPRE
+                            G01 Y=(DIEPTEMEM * STAP)
+                            G01 G42 X=(RECHTS+RADIUS) Z=((CENTER-(BREEDTE/2))+RADIUS)
+                         ENDIF
+                         G01 Z=((CENTER+(BREEDTE/2))-RADIUS)
+                         G02 X=RECHTS Z=(CENTER+(BREEDTE/2)) CR=RADIUS
+                         G01 X=XSTART F=SNELHEID
+                     G40 G01 Z=CENTER
+                  ENDIF
+                  IF M_KEUZE == 2 ; nieuwe prog
+                     STOPRE
+                     G90 G64 G42 G01 Z=(CENTER-(BREEDTE/2)) F=BOCHTSNELHEID
+                         G01 X=RECHTS F=SNELHEID
+                         G02 X=(RECHTS+RADIUS) Z=((CENTER-(BREEDTE/2))+RADIUS) CR=RADIUS F=BOCHTSNELHEID
+                         IF (_WACHT6 > 0) OR (_WACHT7 > 0)
+                            G01 G40 X=RECHTS Z=CENTER
+                            G01 G00 Y=-5
+                            STOPRE
+                            _WACHT5 = 0
+                            G04 F0.5
+                            STOPRE
+                            _WACHT5 = 1
+                            STOPRE
+                            WHILE (_WACHT6 == 2) OR (_WACHT7 == 2)
+                               G04 F0.1
+                               STOPRE
+                            ENDWHILE
+                            STOPRE
+                            G01 Y=(DIEPTEMEM * STAP)
+                            G01 G42 X=(RECHTS+RADIUS) Z=((CENTER-(BREEDTE/2))+RADIUS)
+                         ENDIF
+                         G01 Z=((CENTER+(BREEDTE/2))-RADIUS)
+                         G02 X=(RECHTS) Z=(CENTER+(BREEDTE/2)) CR=RADIUS
+                         G01 X=LINKS F=SNELHEID
+                         G02 X=(LINKS-RADIUS) Z=((CENTER+(BREEDTE/2))-RADIUS) CR=RADIUS F=BOCHTSNELHEID
+                         IF (_WACHT6 > 0) OR (_WACHT7 > 0)
+                            G01 G40 X=LINKS Z=CENTER
+                            G01 G00 Y=-5
+                            STOPRE
+                            _WACHT5 = 0
+                            G04 F0.5
+                            STOPRE
+                            _WACHT5 = 1
+                            STOPRE
+                            WHILE (_WACHT6 == 2) OR (_WACHT7 == 2)
+                               G04 F0.1
+                               STOPRE
+                            ENDWHILE
+                            STOPRE
+                            G01 Y=(DIEPTEMEM * STAP)
+                            G01 G42 X=(LINKS-RADIUS) Z=((CENTER+(BREEDTE/2))-RADIUS)
+                         ENDIF
+                         G01 Z=((CENTER-(BREEDTE/2))+RADIUS)
+                         G02 X=LINKS Z=(CENTER-(BREEDTE/2)) CR=RADIUS
+                         G01 X=XSTART F=SNELHEID
+                     G40 G01 Z=CENTER
+                  ENDIF
+                  IF (BREEDTE - (TOOLRADIUS * 4)) > 0
+                     G01 X=LINKS F=SNELHEID
+                     G01 X=RECHTS
+                  ENDIF
+                 ELSE
+                  IF M_KEUZE == 1
+                     STOPRE
+                     G90 G64 G41 G01 Z=(CENTER-(BREEDTE/2)) F=BOCHTSNELHEID
+                         G01 X=LINKS F=SNELHEID
+                         IF ((_WACHT6 > 0) OR (_WACHT7 > 0)) AND (1 == 0)
+                            G01 G40 X=LINKS Z=CENTER
+                            G01 G00 Y=-5
+                            STOPRE
+                            _WACHT5 = 0
+                            G04 F0.5
+                            STOPRE
+                            _WACHT5 = 1
+                            STOPRE
+                            WHILE (_WACHT6 == 2) OR (_WACHT7 == 2)
+                               G04 F0.1
+                               STOPRE
+                            ENDWHILE
+                            STOPRE
+                            G01 Y=(DIEPTEMEM * STAP)
+                            G01 G41 X=LINKS Z=(CENTER-(BREEDTE/2))
+                         ENDIF
+                         G01 Z=(CENTER+(BREEDTE/2)) F=(SNELHEID/3)
+                         G01 X=RECHTS F=SNELHEID
+                         IF ((_WACHT6 > 0) OR (_WACHT7 > 0)) AND (1 == 0)
+                            G01 G40 X=RECHTS Z=CENTER
+                            G01 G00 Y=-5
+                            STOPRE
+                            _WACHT5 = 0
+                            G04 F0.5
+                            STOPRE
+                            _WACHT5 = 1
+                            STOPRE
+                            WHILE (_WACHT6 == 2) OR (_WACHT7 == 2)
+                               G04 F0.1
+                               STOPRE
+                            ENDWHILE
+                            STOPRE
+                            G01 Y=(DIEPTEMEM * STAP)
+                            G01 G41 X=(RECHTS+RADIUS) Z=((CENTER-(BREEDTE/2))+RADIUS)
+                         ENDIF
+                         G01 Z=(CENTER-(BREEDTE/2)) F=(SNELHEID/3)
+                         G01 X=XSTART
+                     G40 G01 Z=CENTER
+                  ENDIF
+                  IF M_KEUZE == 2
+                     STOPRE
+                     G90 G64 G42 G01 Z=(CENTER+(BREEDTE/2)) F=BOCHTSNELHEID
+                         G01 X=LINKS F=SNELHEID
+                         G01 Z=(CENTER-(BREEDTE/2)) F=(SNELHEID/3)
+                         G01 X=RECHTS F=SNELHEID
+                         G01 Z=(CENTER+(BREEDTE/2)) F=(SNELHEID/3)
+                         G01 X=XSTART
+                     G40 G01 Z=CENTER
+                  ENDIF
+                  IF (BREEDTE - (TOOLRADIUS * 4)) > 0
+                     G01 X=LINKS F=SNELHEID
+                     G01 X=RECHTS
+                  ENDIF
+               ENDIF
+              ELSE
+               IF M_KEUZE == 1
+                  G90 G64 G41 G01 Z=(CENTER-(BREEDTE/2)) F=BOCHTSNELHEID
+                      G01 X=LINKS F=SNELHEID
+                      G03 X=LINKS Z=(CENTER+(BREEDTE/2)) CR=(BREEDTE/2) F=BOCHTSNELHEID
+                      G01 X=RECHTS F=SNELHEID
+                      G03 Z=(CENTER-(BREEDTE/2)) CR=(BREEDTE/2) F=BOCHTSNELHEID
+                      G01 X=XSTART F=SNELHEID
+                  G40 G01 Z=CENTER
+               ENDIF
+               IF M_KEUZE == 2
+                  STOPRE
+                  G90 G64 G42 G01 Z=(CENTER-(BREEDTE/2)) F=BOCHTSNELHEID
+                      G01 X=RECHTS F=SNELHEID
+                      G02 Z=(CENTER+(BREEDTE/2)) CR=(BREEDTE/2) F=BOCHTSNELHEID
+                      G01 X=LINKS F=SNELHEID
+                      G02 Z=(CENTER-(BREEDTE/2)) CR=(BREEDTE/2) F=BOCHTSNELHEID
+                      G01 X=XSTART F=SNELHEID
+                  G40 G01 Z=CENTER
+               ENDIF
+               IF (BREEDTE - (TOOLRADIUS * 4)) > 0
+                  G01 X=LINKS F=SNELHEID
+                  G01 X=RECHTS
+               ENDIF
+            ENDIF
+         ENDIF
+         FFWOF CPRECOF
+      ENDFOR
+      G90 G01 Y=-25 Z=CENTER ;laatste wijziging
+   ENDIF
+   STOPRE
+ENDFOR
+STOPRE
+_WACHT5 = 0
+STOPRE
+IF (R5 == 1) AND (ARRAYVPL[0,1] < 500)
+   M99
+ENDIF
+M74 M80
+
+EINDE:
+
+M17  ;ONDERPROGRAMMA EINDE
+ENDPROC

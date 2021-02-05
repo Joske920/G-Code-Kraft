@@ -1,0 +1,385 @@
+PROC XKRSL(VAR REAL ARRAYKRSL[,9], VAR STRING[10] VINKJES)
+DEF REAL VERSCHUIVING, DIAMETER, DOORN, ASAFSTAND, TYPE_SLEUTELGAT, BORING_OPENINGSVLAK, BORING_SLUITVLAK, KRUKPOS, TYPE_CODE
+DEF REAL SLEUTEL[6] ,SLEUTELPOS, SLEUTEL_DIAMETER, SLEUTEL_LENGTE, SLEUTEL_BREEDTE, SLEUTEL_RADIUS, SLEUTEL_OOR, BORING_OVERLAPPEND, OOR_VERPLAATSING
+DEF INT TELLER, STAP
+
+EXTERN KRSL_DB(VAR REAL, VAR REAL [6])
+
+IF (R1 == 6)
+   _WACHT6 = 2
+ENDIF
+IF (R1 == 7)
+   _WACHT7 = 2
+ENDIF
+G90
+G00 G17
+FFWON SOFT CPRECON
+IF (R4 == 1)
+   OVR=50
+  ELSE
+   OVR=85
+ENDIF
+
+
+STARTFIFO
+
+FOR TELLER = 0 TO 7
+   IF (ARRAYKRSL[TELLER,3] > 0)
+      F=5500
+      VERSCHUIVING = ARRAYKRSL[TELLER,0]
+      DIAMETER = ARRAYKRSL[TELLER,1]
+      ASAFSTAND = ARRAYKRSL[TELLER,2]
+      DOORN = ARRAYKRSL[TELLER,3]
+      TYPE_SLEUTELGAT = ARRAYKRSL[TELLER,4]
+      BORING_OPENINGSVLAK = ARRAYKRSL[TELLER,5]
+      BORING_SLUITVLAK = ARRAYKRSL[TELLER,6]
+      BORING_OVERLAPPEND = ARRAYKRSL[TELLER,8]
+
+      IF (SUBSTR(VINKJES,0,1) == "1") OR (SUBSTR(VINKJES,1,1) == "1")
+         BORING_OVERLAPPEND = 1
+      ENDIF
+
+      IF (DIAMETER > 30)
+         F=2500
+      ENDIF
+
+      TYPE_CODE = 0
+      IF (R2 == 0)
+         IF (DIAMETER > 0)
+            KRUKPOS = 0 + VERSCHUIVING
+           ELSE
+            KRUKPOS = 0 + VERSCHUIVING + ASAFSTAND
+         ENDIF
+         SLEUTELPOS = 0 + VERSCHUIVING + ASAFSTAND
+        ELSE
+         IF (DIAMETER > 0)
+            KRUKPOS = 0 - VERSCHUIVING
+           ELSE
+            KRUKPOS = 0 - VERSCHUIVING - ASAFSTAND
+         ENDIF
+         SLEUTELPOS = 0 - VERSCHUIVING - ASAFSTAND
+      ENDIF
+
+      IF (TYPE_SLEUTELGAT <> 0)
+         KRSL_DB(TYPE_SLEUTELGAT, SLEUTEL)
+         TYPE_CODE = SLEUTEL[0]
+         SLEUTEL_DIAMETER = SLEUTEL[1]
+         SLEUTEL_LENGTE = SLEUTEL[2]
+         SLEUTEL_BREEDTE = SLEUTEL[3]
+         SLEUTEL_RADIUS = SLEUTEL[4]
+         SLEUTEL_OOR = SLEUTEL[5]
+      ENDIF
+      STOPRE
+
+      IF (R1 == 6) AND (BORING_OVERLAPPEND == 1)
+         WAITM(7,6,7) ; SYNCHRONISATIE 6 & 7
+      ENDIF
+
+      IF (R1 == 6) AND (BORING_OPENINGSVLAK == 1) AND ((DIAMETER > 0) OR (TYPE_SLEUTELGAT <> 0))
+         STOPRE
+         IF (_WACHT5 > 0)
+            STOPRE
+            _WACHT6 = 1
+            STOPRE
+            IF (DIAMETER > 0) AND (SUBSTR(VINKJES,0,1) == "0")
+               G00 X=KRUKPOS Y=DOORN
+            ENDIF
+            WHILE (_WACHT5 > 0)
+               G04 F0.1
+               STOPRE
+            ENDWHILE
+            STOPRE
+         ENDIF
+         STOPRE
+
+         IF (DIAMETER > 0) AND (SUBSTR(VINKJES,0,1) == "0")
+            _WACHT6 = 2
+            STOPRE
+            G511 T1 D1 X=KRUKPOS Y=DOORN
+            M53
+            M71
+            STOPRE
+            _WACHT6 = 1
+            STOPRE
+            IF (R6 == 0)
+               STAP = 2
+              ELSE
+               STAP = 1
+            ENDIF
+            FOR STAP = STAP TO 2
+               IF (STAP == 2) AND (R1 == 6)
+                  M75
+               ENDIF
+               G42 G01 X=(KRUKPOS + (DIAMETER/2))
+               G02 I=-(DIAMETER/2)
+               G40 G00 X=KRUKPOS
+            ENDFOR
+            M72 M76
+         ENDIF
+
+         STOPRE
+         IF (_WACHT5 > 0)
+            STOPRE
+            _WACHT6 = 1
+            STOPRE
+            IF (TYPE_SLEUTELGAT <> 0) AND (SUBSTR(VINKJES,1,1) == "0")
+               G00 X=SLEUTELPOS Y=DOORN
+            ENDIF
+            WHILE (_WACHT5 > 0)
+               G04 F0.1
+               STOPRE
+            ENDWHILE
+            STOPRE            
+         ENDIF
+         STOPRE
+
+         IF (TYPE_SLEUTELGAT <> 0) AND (SUBSTR(VINKJES,1,1) == "0")
+            _WACHT6 = 2
+            STOPRE
+            G511 T1 D1 X=SLEUTELPOS Y=DOORN
+            M53
+            M71
+            STOPRE
+            _WACHT6 = 1
+            STOPRE
+            IF (R6 == 0)
+               STAP = 2
+              ELSE
+               STAP = 1
+            ENDIF
+            STOPRE
+            FOR STAP = STAP TO 2
+               IF (STAP == 2) AND (R1 == 6)
+                  M75
+               ENDIF
+               IF (TYPE_CODE == 1)
+                  G42 G01 X=(SLEUTELPOS + (SLEUTEL_DIAMETER/2))
+                  G02 I=-(SLEUTEL_DIAMETER/2)
+                  G40 G00 X=SLEUTELPOS
+                  IF (R2 == 0)
+                     IF (SLEUTEL_BREEDTE > ($P_TOOLR*2))
+                        G91 G01 Y=-((SLEUTEL_BREEDTE/2)-$P_TOOLR)
+                        G90 G01 X=(SLEUTELPOS - (SLEUTEL_LENGTE - (SLEUTEL_DIAMETER/2) - $P_TOOLR))
+                        G91 G01 Y=(SLEUTEL_BREEDTE-($P_TOOLR*2))
+                        G90 G01 X=SLEUTELPOS
+                       ELSE
+                        G01 X=(SLEUTELPOS - (SLEUTEL_LENGTE - (SLEUTEL_DIAMETER/2) - $P_TOOLR))
+                     ENDIF
+                    ELSE
+                     IF (SLEUTEL_BREEDTE > ($P_TOOLR*2))
+                        G91 G01 Y=((SLEUTEL_BREEDTE/2)-$P_TOOLR)
+                        G90 G01 X=(SLEUTELPOS + (SLEUTEL_LENGTE - (SLEUTEL_DIAMETER/2) - $P_TOOLR))
+                        G91 G01 Y=-(SLEUTEL_BREEDTE-($P_TOOLR*2))
+                        G90 G01 X=SLEUTELPOS
+                       ELSE
+                        G01 X=(SLEUTELPOS + (SLEUTEL_LENGTE - (SLEUTEL_DIAMETER/2) - $P_TOOLR))
+                     ENDIF
+                  ENDIF
+                  G00 X=SLEUTELPOS
+               ENDIF
+               IF (TYPE_CODE == 2)
+                  G42 G01 X=(SLEUTELPOS + (SLEUTEL_DIAMETER/2))
+                  G02 I=-(SLEUTEL_DIAMETER/2)
+                  G40 G00 X=SLEUTELPOS
+               ENDIF
+               IF (TYPE_CODE == 3)
+                  IF (SLEUTEL_RADIUS == 0 AND SLEUTEL_OOR <> 0)
+                     SLEUTEL_RADIUS = $P_TOOLR
+                     OOR_VERPLAATSING = SQRT(($P_TOOLR * $P_TOOLR) * 2) - $P_TOOLR + SLEUTEL_OOR
+                     IF (OOR_VERPLAATSING < 0)
+                        FOUTE OPGAVE ; FOUTMELDING OOR_VERPLAATSING
+                     ENDIF
+                  ENDIF
+                  G01 X=(SLEUTELPOS + ((SLEUTEL_LENGTE/2) - $P_TOOLR))
+                  G01 Y=(DOORN - ((SLEUTEL_BREEDTE/2) - SLEUTEL_RADIUS))
+                  IF (OOR_VERPLAATSING > 0)
+                     G01 X=(SLEUTELPOS + ((SLEUTEL_LENGTE/2) - SLEUTEL_RADIUS + OOR_VERPLAATSING)) Y=(DOORN - ((SLEUTEL_BREEDTE/2) - $P_TOOLR + OOR_VERPLAATSING))
+                     G01 X=(SLEUTELPOS + ((SLEUTEL_LENGTE/2) - SLEUTEL_RADIUS)) Y=(DOORN - ((SLEUTEL_BREEDTE/2) - $P_TOOLR))
+                    ELSE
+                     G02 X=(SLEUTELPOS + ((SLEUTEL_LENGTE/2) - SLEUTEL_RADIUS)) Y=(DOORN - ((SLEUTEL_BREEDTE/2) - $P_TOOLR)) CR=(SLEUTEL_RADIUS - $P_TOOLR)
+                  ENDIF
+                  G01 X=(SLEUTELPOS - ((SLEUTEL_LENGTE/2) - SLEUTEL_RADIUS))
+                  IF (OOR_VERPLAATSING > 0)
+                     G01 X=(SLEUTELPOS - ((SLEUTEL_LENGTE/2) - $P_TOOLR + OOR_VERPLAATSING)) Y=(DOORN - ((SLEUTEL_BREEDTE/2) - $P_TOOLR + OOR_VERPLAATSING))
+                     G01 X=(SLEUTELPOS - ((SLEUTEL_LENGTE/2) - $P_TOOLR)) Y=(DOORN - ((SLEUTEL_BREEDTE/2) - $P_TOOLR))
+                    ELSE
+                     G02 X=(SLEUTELPOS - ((SLEUTEL_LENGTE/2) - $P_TOOLR)) Y=(DOORN - ((SLEUTEL_BREEDTE/2) - SLEUTEL_RADIUS)) CR=(SLEUTEL_RADIUS - $P_TOOLR)
+                  ENDIF
+                  G01 Y=(DOORN + ((SLEUTEL_BREEDTE/2) - SLEUTEL_RADIUS))
+                  IF (OOR_VERPLAATSING > 0)
+                     G01 X=(SLEUTELPOS - ((SLEUTEL_LENGTE/2) - $P_TOOLR + OOR_VERPLAATSING)) Y=(DOORN + ((SLEUTEL_BREEDTE/2) - $P_TOOLR + OOR_VERPLAATSING))
+                     G01 X=(SLEUTELPOS - ((SLEUTEL_LENGTE/2) - $P_TOOLR)) Y=(DOORN + ((SLEUTEL_BREEDTE/2) - $P_TOOLR))
+                    ELSE
+                     G02 X=(SLEUTELPOS - ((SLEUTEL_LENGTE/2) - SLEUTEL_RADIUS)) Y=(DOORN + ((SLEUTEL_BREEDTE/2) - $P_TOOLR)) CR=(SLEUTEL_RADIUS - $P_TOOLR)
+                  ENDIF
+                  G01 X=(SLEUTELPOS + ((SLEUTEL_LENGTE/2) - SLEUTEL_RADIUS))
+                  IF (OOR_VERPLAATSING > 0)
+                     G01 X=(SLEUTELPOS + ((SLEUTEL_LENGTE/2) - $P_TOOLR + OOR_VERPLAATSING)) Y=(DOORN + ((SLEUTEL_BREEDTE/2) - $P_TOOLR + OOR_VERPLAATSING))
+                     G01 X=(SLEUTELPOS + ((SLEUTEL_LENGTE/2) - $P_TOOLR)) Y=(DOORN + ((SLEUTEL_BREEDTE/2) - $P_TOOLR))
+                    ELSE
+                     G02 X=(SLEUTELPOS + ((SLEUTEL_LENGTE/2) - $P_TOOLR)) Y=(DOORN + ((SLEUTEL_BREEDTE/2) - SLEUTEL_RADIUS)) CR=(SLEUTEL_RADIUS - $P_TOOLR)
+                  ENDIF
+                  G01 Y=DOORN
+                  G00 X=SLEUTELPOS
+               ENDIF
+               STOPRE
+            ENDFOR
+            M72 M76
+         ENDIF
+         STOPRE
+      ENDIF
+
+      IF (R1 == 6) AND (BORING_OVERLAPPEND == 1)
+         WAITM(8,6,7) ; EINDE 6
+         WAITM(9,6,7) ; WACHT OP 7
+      ENDIF
+      IF (R1 == 7) AND (BORING_OVERLAPPEND == 1)
+         WAITM(7,6,7) ; SYNCHRONISATIE 6 & 7
+         WAITM(8,6,7) ; WACHT OP 6
+      ENDIF
+
+      IF (R1 == 7) AND (BORING_SLUITVLAK == 1) AND ((DIAMETER > 0) OR (TYPE_SLEUTELGAT <> 0))
+         STOPRE
+         IF (_WACHT5 > 0)
+            STOPRE
+            _WACHT7 = 1
+            STOPRE
+            IF (TYPE_SLEUTELGAT <> 0) AND (SUBSTR(VINKJES,1,1) == "0")
+               G00 X=SLEUTELPOS Y=DOORN
+            ENDIF
+            WHILE (_WACHT5 > 0)
+               G04 F0.1
+               STOPRE
+            ENDWHILE
+            STOPRE            
+         ENDIF
+         STOPRE
+
+         IF (TYPE_SLEUTELGAT <> 0) AND (SUBSTR(VINKJES,1,1) == "0")
+            _WACHT7 = 2
+            STOPRE
+            G511 T1 D1 X=SLEUTELPOS Y=DOORN
+            M53
+            M71
+            STOPRE
+            _WACHT7 = 1
+            STOPRE
+            IF (TYPE_CODE == 1)
+               G41 G01 X=(SLEUTELPOS + (SLEUTEL_DIAMETER/2))
+               G03 I=-(SLEUTEL_DIAMETER/2)
+               G40 G00 X=SLEUTELPOS
+               IF (R2 == 0)
+                  IF (SLEUTEL_BREEDTE > ($P_TOOLR*2))
+                     G91 G01 Y=((SLEUTEL_BREEDTE/2)-$P_TOOLR)
+                     G90 G01 X=(SLEUTELPOS - (SLEUTEL_LENGTE - (SLEUTEL_DIAMETER/2) - $P_TOOLR))
+                     G91 G01 Y=-(SLEUTEL_BREEDTE-($P_TOOLR*2))
+                     G90 G01 X=SLEUTELPOS
+                    ELSE
+                     G01 X=(SLEUTELPOS - (SLEUTEL_LENGTE - (SLEUTEL_DIAMETER/2) - $P_TOOLR))
+                  ENDIF
+                 ELSE
+                  IF (SLEUTEL_BREEDTE > ($P_TOOLR*2))
+                     G91 G01 Y=-((SLEUTEL_BREEDTE/2)-$P_TOOLR)
+                     G90 G01 X=(SLEUTELPOS + (SLEUTEL_LENGTE - (SLEUTEL_DIAMETER/2) - $P_TOOLR))
+                     G91 G01 Y=(SLEUTEL_BREEDTE-($P_TOOLR*2))
+                     G90 G01 X=SLEUTELPOS
+                    ELSE
+                     G01 X=(SLEUTELPOS + (SLEUTEL_LENGTE - (SLEUTEL_DIAMETER/2) - $P_TOOLR))
+                  ENDIF
+               ENDIF
+               G00 X=SLEUTELPOS
+            ENDIF
+            IF (TYPE_CODE == 2)
+               G41 G01 X=(SLEUTELPOS + (SLEUTEL_DIAMETER/2))
+               G03 I=-(SLEUTEL_DIAMETER/2)
+               G40 G00 X=SLEUTELPOS
+            ENDIF
+            IF (TYPE_CODE == 3)
+               IF (SLEUTEL_RADIUS == 0 AND SLEUTEL_OOR <> 0)
+                  SLEUTEL_RADIUS = $P_TOOLR
+                  OOR_VERPLAATSING = SQRT(($P_TOOLR * $P_TOOLR) * 2) - $P_TOOLR + SLEUTEL_OOR
+                  IF (OOR_VERPLAATSING < 0)
+                     FOUTE OPGAVE ; FOUTMELDING OOR_VERPLAATSING
+                  ENDIF
+               ENDIF
+               G01 X=(SLEUTELPOS + ((SLEUTEL_LENGTE/2) - $P_TOOLR))
+               G01 Y=(DOORN + ((SLEUTEL_BREEDTE/2) - SLEUTEL_RADIUS))
+               IF (OOR_VERPLAATSING > 0)
+                  G01 X=(SLEUTELPOS + ((SLEUTEL_LENGTE/2) - $P_TOOLR + OOR_VERPLAATSING)) Y=(DOORN + ((SLEUTEL_BREEDTE/2) - $P_TOOLR + OOR_VERPLAATSING))
+                  G01 X=(SLEUTELPOS + ((SLEUTEL_LENGTE/2) - $P_TOOLR)) Y=(DOORN + ((SLEUTEL_BREEDTE/2) - $P_TOOLR))
+                 ELSE
+                  G03 X=(SLEUTELPOS + ((SLEUTEL_LENGTE/2) - SLEUTEL_RADIUS)) Y=(DOORN + ((SLEUTEL_BREEDTE/2) - $P_TOOLR)) CR=(SLEUTEL_RADIUS - $P_TOOLR)
+               ENDIF
+               G01 X=(SLEUTELPOS - ((SLEUTEL_LENGTE/2) - SLEUTEL_RADIUS))
+               IF (OOR_VERPLAATSING > 0)
+                  G01 X=(SLEUTELPOS - ((SLEUTEL_LENGTE/2) - $P_TOOLR + OOR_VERPLAATSING)) Y=(DOORN + ((SLEUTEL_BREEDTE/2) - $P_TOOLR + OOR_VERPLAATSING))
+                  G01 X=(SLEUTELPOS - ((SLEUTEL_LENGTE/2) - $P_TOOLR)) Y=(DOORN + ((SLEUTEL_BREEDTE/2) - $P_TOOLR))
+                 ELSE
+                  G03 X=(SLEUTELPOS - ((SLEUTEL_LENGTE/2) - $P_TOOLR)) Y=(DOORN + ((SLEUTEL_BREEDTE/2) - SLEUTEL_RADIUS)) CR=(SLEUTEL_RADIUS - $P_TOOLR)
+               ENDIF
+               G01 Y=(DOORN - ((SLEUTEL_BREEDTE/2) - SLEUTEL_RADIUS))
+               IF (OOR_VERPLAATSING > 0)
+                  G01 X=(SLEUTELPOS - ((SLEUTEL_LENGTE/2) - $P_TOOLR + OOR_VERPLAATSING)) Y=(DOORN - ((SLEUTEL_BREEDTE/2) - $P_TOOLR + OOR_VERPLAATSING))
+                  G01 X=(SLEUTELPOS - ((SLEUTEL_LENGTE/2) - $P_TOOLR)) Y=(DOORN - ((SLEUTEL_BREEDTE/2) - $P_TOOLR))
+                 ELSE
+                  G03 X=(SLEUTELPOS - ((SLEUTEL_LENGTE/2) - SLEUTEL_RADIUS)) Y=(DOORN - ((SLEUTEL_BREEDTE/2) - $P_TOOLR)) CR=(SLEUTEL_RADIUS - $P_TOOLR)
+               ENDIF
+               G01 X=(SLEUTELPOS + ((SLEUTEL_LENGTE/2) - SLEUTEL_RADIUS))
+               IF (OOR_VERPLAATSING > 0)
+                  G01 X=(SLEUTELPOS + ((SLEUTEL_LENGTE/2) - $P_TOOLR + OOR_VERPLAATSING)) Y=(DOORN - ((SLEUTEL_BREEDTE/2) - SLEUTEL_RADIUS + OOR_VERPLAATSING))
+                  G01 X=(SLEUTELPOS + ((SLEUTEL_LENGTE/2) - $P_TOOLR)) Y=(DOORN - ((SLEUTEL_BREEDTE/2) - SLEUTEL_RADIUS))
+                 ELSE
+                  G03 X=(SLEUTELPOS + ((SLEUTEL_LENGTE/2) - $P_TOOLR)) Y=(DOORN - ((SLEUTEL_BREEDTE/2) - SLEUTEL_RADIUS)) CR=(SLEUTEL_RADIUS - $P_TOOLR)
+               ENDIF
+               G01 Y=DOORN
+               G00 X=SLEUTELPOS
+            ENDIF
+            M72
+         ENDIF
+
+         STOPRE
+         IF (_WACHT5 > 0)
+            STOPRE
+            _WACHT7 = 1
+            STOPRE
+            IF (DIAMETER > 0) AND (SUBSTR(VINKJES,0,1) == "0")
+               G00 X=KRUKPOS Y=DOORN
+            ENDIF
+            WHILE (_WACHT5 > 0)
+               G04 F0.1
+               STOPRE
+            ENDWHILE
+            STOPRE
+         ENDIF
+         STOPRE
+
+         IF (DIAMETER > 0) AND (SUBSTR(VINKJES,0,1) == "0")
+            _WACHT7 = 2
+            STOPRE
+            G511 T1 D1 X=KRUKPOS Y=DOORN
+            M53
+            M71
+            STOPRE
+            _WACHT7 = 1
+            STOPRE
+            G41 G01 X=(KRUKPOS + (DIAMETER/2))
+            G03 I=-(DIAMETER/2)
+            G40 G00 X=KRUKPOS
+            M72
+         ENDIF
+         STOPRE
+      ENDIF
+      IF (R1 == 7) AND (BORING_OVERLAPPEND == 1)
+         WAITM(9,6,7) ; SYNCHRONISATIE 6 & 7
+      ENDIF
+   ENDIF
+   STOPRE
+ENDFOR
+
+STOPRE
+STOPFIFO
+
+FFWOF SOFT CPRECOF
+
+EINDE:
+M17

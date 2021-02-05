@@ -1,0 +1,408 @@
+PROC XSLG(VAR REAL ARRAYSLG[,11], STRING[10] VINKJES)
+EXTERN DIAMETER (VAR REAL,VAR REAL,VAR REAL,VAR REAL)
+EXTERN POSITIONV20(AXIS, REAL, STRING[6], INT)
+DEF REAL DIEPTE2, DIEPTEMEM_30, DIEPTEMEM_REST, LINKS, RECHTS, MIN, MAX, DIA511, BAARD511, DIA512, BAARD512, BAARD, DIAM, VERSCHUIVING, LENGTE, DIEPTE_30, DIEPTEVB
+DEF REAL BREEDTE, DIEPTE, KRUKTOTBOVEN, CENTER, L_SPELING, RADIUS, SNELHEID, CORRECTIE, X_CORRECTIE, X_CENTER, LRC_POS, STAP_REST
+DEF INT TELLER, TELLER_2, SNEL30, SNELREST, STAP_30, AANTAL_STAPPEN_30, AANTAL_STAPPEN_REST, FREES
+STOPRE
+OVR=100
+
+TELLER = 0
+DIA511 = 0
+BAARD511 = 0
+DIA512 = 0
+BAARD512 = 0
+BAARD = 0
+
+IF STRLEN(VINKJES) < 6
+   VINKJES = VINKJES<<"1"
+ENDIF
+;---------- Ophalen Diameters --------
+DIAMETER(DIA511,BAARD511,DIA512,BAARD512)
+
+BREEDTE = 99
+
+IF ARRAYSLG[1,3] > 0
+   FOR TELLER = 0 TO 7
+      IF (ARRAYSLG[TELLER,2] > 0) AND (ARRAYSLG[TELLER,2] < BREEDTE)
+         BREEDTE = ARRAYSLG[TELLER,2]
+      ENDIF
+   ENDFOR
+   FREES = 71
+   IF (BREEDTE >= DIA512)
+      FREES = 73
+   ENDIF
+  ELSE
+   IF SUBSTR(VINKJES,5,1) == "0"
+      IF ARRAYSLG[0,9] == 0
+         BREEDTE = ARRAYSLG[0,2]
+         FREES = 71
+         IF BREEDTE >= DIA512
+            FREES = 73
+         ENDIF
+        ELSE
+         FREES = 71
+         IF DIA511 >= ARRAYSLG[0,9]
+            BREEDTE = DIA511
+           ELSE
+            BREEDTE = ARRAYSLG[0,9]
+         ENDIF
+         IF (DIA512 >= ARRAYSLG[0,9]) AND (DIA512 <= ARRAYSLG[0,2])
+            BREEDTE = DIA512
+            FREES = 73
+         ENDIF
+      ENDIF
+     ELSE
+      BREEDTE = ARRAYSLG[0,2]
+      FREES = 71
+      IF BREEDTE >= DIA512
+         FREES = 73
+      ENDIF
+   ENDIF
+ENDIF
+
+
+IF BREEDTE == 99 GOTOF EINDE
+IF BREEDTE == 0 GOTOF EINDE
+
+G90 ; ABSOLUTE MAATVOERING
+G00 G18
+
+;----------- Freeskeuze 511/512 -------
+IF FREES == 73
+   DIAM = DIA512
+   BAARD = TRUNC(BAARD512)
+   G512 T2 D1 Y=-5 Z=ARRAYSLG[0,5] ;HIER Y=-20
+   CORRECTIE = 0.0
+   ; M73 ; FREES 18mm VOORUIT STUREN
+  ELSE
+   DIAM = DIA511
+   BAARD = TRUNC(BAARD511)
+   G511 T1 D1 Y=-5 Z=ARRAYSLG[0,5] ;HIER Y=-20
+   CORRECTIE = 0.0
+   ;M71 ; FREES 16.5mm VOORUIT STUREN
+ENDIF
+;---------- Slotkasten Frezen --------
+FOR TELLER = 0 TO 7
+   IF (ARRAYSLG[TELLER,3]) > 0
+      G90 G00 Y=-5 ;HIER Y=-20
+      LINKS = 0
+      RECHTS = 0
+      DIEPTE2 = 0
+      DIEPTEMEM_30 = 0
+      DIEPTEMEM_REST = 0
+      MIN = 0
+      MAX = 0
+      STAP_30 = 0
+      STAP_REST = 0
+      SNEL30 = 0
+      SNELREST = 0
+      DIEPTEVB = 0
+
+      VERSCHUIVING = ARRAYSLG[TELLER,0]
+      LENGTE = ARRAYSLG[TELLER,1]
+      BREEDTE = ARRAYSLG[TELLER,2]
+      DIEPTE = ARRAYSLG[TELLER,3]
+      KRUKTOTBOVEN = ARRAYSLG[TELLER,4]
+      IF (SUBSTR(VINKJES,5,1) == "0") AND (ARRAYSLG[TELLER,9] > 0)
+         IF ARRAYSLG[TELLER,10] > 0
+            CENTER = ARRAYSLG[TELLER,10] + CORRECTIE
+           ELSE
+            CENTER = ARRAYSLG[TELLER,5] + CORRECTIE
+         ENDIF
+        ELSE
+         CENTER = ARRAYSLG[TELLER,5] + CORRECTIE
+      ENDIF
+      RADIUS = ARRAYSLG[TELLER,6]
+      SNELHEID = ARRAYSLG[TELLER,7]
+      L_SPELING = ARRAYSLG[TELLER,8]
+
+      IF R2 == 0
+         ; LINKSE DEUR
+         X_CORRECTIE = 0
+         IF RADIUS > (DIAM/2)
+            X_CENTER = 0 + VERSCHUIVING + X_CORRECTIE
+            LINKS = 0 + VERSCHUIVING + X_CORRECTIE - LENGTE + KRUKTOTBOVEN + (DIAM/2) - L_SPELING - (RADIUS - (DIAM/2))
+            RECHTS = 0 + VERSCHUIVING + X_CORRECTIE + KRUKTOTBOVEN - (DIAM/2) + L_SPELING + (RADIUS - (DIAM/2))
+            LRC_POS = 0 + VERSCHUIVING + X_CORRECTIE - (LENGTE/2) + KRUKTOTBOVEN
+           ELSE
+            X_CENTER = 0 + VERSCHUIVING + X_CORRECTIE
+            LINKS = 0 + VERSCHUIVING + X_CORRECTIE - LENGTE + KRUKTOTBOVEN + (DIAM/2) - L_SPELING
+            RECHTS = 0 + VERSCHUIVING + X_CORRECTIE + KRUKTOTBOVEN - (DIAM/2) + L_SPELING
+            LRC_POS = 0 + VERSCHUIVING + X_CORRECTIE - (LENGTE/2) + KRUKTOTBOVEN
+         ENDIF
+        ELSE
+         ; RECHTSE DEUR
+         X_CORRECTIE = 0
+         IF RADIUS > (DIAM/2)
+            X_CENTER = 0 - VERSCHUIVING - X_CORRECTIE
+            LINKS = 0 - VERSCHUIVING - X_CORRECTIE - KRUKTOTBOVEN + (DIAM/2) - L_SPELING - (RADIUS - (DIAM/2))
+            RECHTS = 0 - VERSCHUIVING - X_CORRECTIE + LENGTE - KRUKTOTBOVEN - (DIAM/2) + L_SPELING + (RADIUS - (DIAM/2))
+            LRC_POS = 0 - VERSCHUIVING - X_CORRECTIE + (LENGTE/2) - KRUKTOTBOVEN
+           ELSE
+            X_CENTER = 0 - VERSCHUIVING - X_CORRECTIE
+            LINKS = 0 - VERSCHUIVING - X_CORRECTIE - KRUKTOTBOVEN + (DIAM/2) - L_SPELING
+            RECHTS = 0 - VERSCHUIVING - X_CORRECTIE + LENGTE - KRUKTOTBOVEN - (DIAM/2) + L_SPELING
+            LRC_POS = 0 - VERSCHUIVING - X_CORRECTIE + (LENGTE/2) - KRUKTOTBOVEN
+         ENDIF
+      ENDIF
+
+      _WACHT16 = LRC_POS
+      IF BREEDTE > DIAM
+         MIN = CENTER - (BREEDTE/2) + (DIAM/2)
+         MAX = CENTER + (BREEDTE/2) - (DIAM/2)
+        ELSE
+         MIN = CENTER
+         MAX = CENTER
+      ENDIF
+
+      IF (DIEPTE - 30) < 6
+         DIEPTE_30 = DIEPTE
+        ELSE
+         DIEPTE_30 = 30
+      ENDIF
+
+      IF (DIEPTE > 60)
+         DIEPTEVB = DIEPTE
+        ELSE
+         DIEPTEVB = DIEPTE
+      ENDIF
+
+      IF (R4 == 1) OR (_WACHT1 == 1)
+         SNEL30 = 30
+         SNELREST = 65
+         STAP_30 = 3.75
+         STAP_REST = 5
+        ELSE
+         IF _WACHT1 == 2
+            SNEL30 = 50 ; OVR PERCENTAGE
+            SNELREST = 100 ; OVR PERCENTAGE
+            STAP_30 = 3.75
+            STAP_REST = ((DIEPTE - DIEPTE_30) / 8)
+            IF STAP_REST < 1
+                STAP_REST = 1
+            ENDIF
+           ELSE
+            SNEL30 = 60
+            SNELREST = 100
+            STAP_30 = 3.75
+            IF DIEPTE == DIEPTE_30
+               STAP_REST = 1  ; MOET 1 WORDEN    TESTEN OP 3P DEUR
+              ELSE
+               STAP_REST = ((DIEPTE - DIEPTE_30) / (TRUNC(((DIEPTE - DIEPTE_30) / BAARD)) + 1))
+            ENDIF
+            IF (STAP_REST < 1)
+               STAP_REST = 1
+            ENDIF
+         ENDIF
+      ENDIF
+
+      OVR = 100
+      G90 G00 G64 Y=-5
+      G90 G00 X=LINKS Z=MAX
+      STOPRE
+      IF (($A_DBB[116] == 10) OR ($A_DBB[116] == 20))
+         POSITIONV20(V8, DEURBREEDTE_V8, GEWICHT_V8, 20)
+      ENDIF
+      STOPRE
+      M53 ; DEUR KLEMMEN
+      IF FREES == 73 ;MOTOR UITSTUREN
+         M73
+        ELSE
+         M71
+      ENDIF
+      STATUS_V8 = 30
+      STOPRE
+      IF DIEPTE > DIEPTE_30
+         AANTAL_STAPPEN_30 = TRUNC((DIEPTE_30/STAP_30)/4)+1
+         DIEPTEMEM_30 = ((DIEPTE_30/AANTAL_STAPPEN_30)/4)
+         AANTAL_STAPPEN_REST = TRUNC(((DIEPTE-DIEPTE_30)/STAP_REST))
+         DIEPTEMEM_REST = (((DIEPTE-DIEPTE_30)/AANTAL_STAPPEN_REST)/4)
+        ELSE
+         AANTAL_STAPPEN_30 = TRUNC((DIEPTE/STAP_30)/4)+1
+         DIEPTEMEM_30 = ((DIEPTE/AANTAL_STAPPEN_30)/4)
+         AANTAL_STAPPEN_REST = 0
+         DIEPTEMEM_REST = 0
+      ENDIF
+      STOPRE
+      IF RADIUS <= (DIAM/2)
+         IF (MIN == MAX) AND (R4 == 0) ; geen verplaatsing in Z en NIET HARDHOUT
+            OVR = SNEL30
+            FOR TELLER_2 = 1 TO AANTAL_STAPPEN_30
+               G64 G01 X=RECHTS Y=(DIEPTE2 + (DIEPTEMEM_30 * 1)) Z=MAX F=30000 SOFT
+                       X=LINKS Y=(DIEPTE2 + (DIEPTEMEM_30 * 2))
+                       X=RECHTS Y=(DIEPTE2 + (DIEPTEMEM_30 * 3)) Z=MAX
+                       X=LINKS Y=(DIEPTE2 + (DIEPTEMEM_30 * 4))
+               DIEPTE2 = (DIEPTE2 + (DIEPTEMEM_30 * 4))
+            ENDFOR
+            OVR = SNELREST
+            IF AANTAL_STAPPEN_REST > 0
+               FOR TELLER_2 = 1 TO AANTAL_STAPPEN_REST
+               G64 G01 X=RECHTS Y=(DIEPTE2 + (DIEPTEMEM_REST * 2)) Z=MAX F=30000 SOFT
+                       X=LINKS Y=(DIEPTE2 + (DIEPTEMEM_REST * 4))
+                       ;X=RECHTS Y=(DIEPTE2 + (DIEPTEMEM_REST * 3)) Z=MAX
+                       ;X=LINKS Y=(DIEPTE2 + (DIEPTEMEM_REST * 4))
+               DIEPTE2 = (DIEPTE2 + (DIEPTEMEM_REST * 4))
+               ENDFOR
+            ENDIF
+            G00 X=RECHTS Z=MAX
+            ;G00 X=LRC_POS
+            ;OVR = 
+            G64 G00 X=LINKS Y=-5 ;Z=(MIN+((MAX-MIN)/2))
+                G01 G09 Y=DIEPTEVB F=12000  ; <AANPASSING GEEN NABORING>
+                G04 F0.1
+                G00 X=RECHTS Y=-5 ;Z=(MIN+((MAX-MIN)/2))
+                G01 G09 Y=DIEPTEVB F=12000
+                G04 F0.1
+                G00 X=LRC_POS Y=-5        ; </AANPASSING GEEN NABORING>
+;            IF (LENGTE <= 50) OR (LENGTE >= 120)
+;               G00 X=LRC_POS Y=-5
+;              ELSE
+;               G00 X=LINKS
+;            ENDIF
+            ;G00 Y=-5
+           ELSE
+            OVR = SNEL30
+            FOR TELLER_2 = 1 TO AANTAL_STAPPEN_30
+               IF BREEDTE <= 20
+                  G64 G01 X=RECHTS Y=(DIEPTE2 + (DIEPTEMEM_30 * 1)) Z=MIN F=30000
+                          X=LINKS Y=(DIEPTE2 + (DIEPTEMEM_30 * 2))
+                          X=RECHTS Y=(DIEPTE2 + (DIEPTEMEM_30 * 3)) Z=MAX
+                          X=LINKS Y=(DIEPTE2 + (DIEPTEMEM_30 * 4))
+                 ELSE
+                  G64 G01 G09 X=RECHTS Y=(DIEPTE2 + (DIEPTEMEM_30 * 1)) Z=MIN F=30000
+                          G09 X=LINKS Y=(DIEPTE2 + (DIEPTEMEM_30 * 2))
+                          G09 X=RECHTS Y=(DIEPTE2 + (DIEPTEMEM_30 * 3)) Z=MAX
+                          G09 X=LINKS Y=(DIEPTE2 + (DIEPTEMEM_30 * 4))
+               ENDIF
+               DIEPTE2 = (DIEPTE2 + (DIEPTEMEM_30 * 4))
+            ENDFOR
+            OVR = SNELREST
+            IF AANTAL_STAPPEN_REST > 0
+               FOR TELLER_2 = 1 TO AANTAL_STAPPEN_REST
+                  IF BREEDTE <= 20
+                     G64 G01 X=RECHTS Y=(DIEPTE2 + (DIEPTEMEM_REST * 1)) Z=MIN F=30000
+                             X=LINKS Y=(DIEPTE2 + (DIEPTEMEM_REST * 2))
+                             X=RECHTS Y=(DIEPTE2 + (DIEPTEMEM_REST * 3)) Z=MAX
+                             X=LINKS Y=(DIEPTE2 + (DIEPTEMEM_REST * 4))
+                    ELSE
+                     G64 G01 G09 X=RECHTS Y=(DIEPTE2 + (DIEPTEMEM_REST * 1)) Z=MIN F=30000
+                             G09 X=LINKS Y=(DIEPTE2 + (DIEPTEMEM_REST * 2))
+                             G09 X=RECHTS Y=(DIEPTE2 + (DIEPTEMEM_REST * 3)) Z=MAX
+                             G09 X=LINKS Y=(DIEPTE2 + (DIEPTEMEM_REST * 4))
+                  ENDIF
+                  DIEPTE2 = (DIEPTE2 + (DIEPTEMEM_REST * 4))
+               ENDFOR
+            ENDIF
+            G00 X=RECHTS Z=MIN
+            G00 X=LINKS
+            G00 X=RECHTS Z=MAX
+            G00 X=LINKS
+            G00 X=RECHTS Y=-5
+            OVR = 100 ;SNEL30
+            IF (BREEDTE <= 20) ;AND (R4 == 1) ; <AANPASSING GEEN NABORING>
+            G64 G00 X=RECHTS Z=(MIN+((MAX-MIN)/2))
+                G01 G09 Y=DIEPTEVB F=12000
+                G04 F0.01
+                G00 X=LINKS Y=-5 Z=(MIN+((MAX-MIN)/2))
+                G01 G09 Y=DIEPTEVB F=12000
+                G04 F0.01
+                G00 Y=-5
+            ENDIF                            ; </AANPASSING GEEN NABORING>
+
+;            IF (LENGTE <= 50) OR (LENGTE >= 120)
+;               G00 X=LRC_POS
+;              ELSE
+;               G00 X=RECHTS
+;            ENDIF
+         ENDIF
+        ELSE
+         IF LENGTE == BREEDTE
+            ; ROND FREZING
+            OVR = 75
+            IF DIAM >= BREEDTE
+               G64 G01 X=X_CENTER Z=CENTER F1500
+                   G01 Y=DIEPTE/2
+                   G04 F0.5
+                   G01 Y=-5
+                   G04 F0.5
+                   G01 Y=DIEPTE
+                   G04 F0.5
+                   G01 Y=-5
+                   G04 F0.5
+                   G01 Y=DIEPTE
+              ELSE
+               G01 X=X_CENTER F1500
+               FOR TELLER_2 = 1 TO AANTAL_STAPPEN_30
+                  G64 G02 K=(-(MAX - CENTER)) Y=(DIEPTE2 + (DIEPTEMEM_30 * 4))
+                  DIEPTE2 = (DIEPTE2 + (DIEPTEMEM_30 * 4))
+               ENDFOR
+               OVR = 75; SNELREST
+               IF AANTAL_STAPPEN_REST > 0
+                  FOR TELLER_2 = 1 TO AANTAL_STAPPEN_REST
+                     G02 K=(-(MAX - CENTER)) Y=(DIEPTE2 + (DIEPTEMEM_REST * 4))
+                     DIEPTE2 = (DIEPTE2 + (DIEPTEMEM_REST * 4))
+                  ENDFOR
+               ENDIF
+            ENDIF
+           ELSE
+            ; OVAAL FREZING
+            TESTEERST
+            OVR = 45;SNEL30
+            FOR TELLER_2 = 1 TO AANTAL_STAPPEN_30
+               G64 G01 X=RECHTS Y=(DIEPTE2 + (DIEPTEMEM_30 * 1)) Z=MAX
+                   G02 X=RECHTS Y=(DIEPTE2 + (DIEPTEMEM_30 * 1)) Z=MIN CR=RADIUS
+                   G01 X=LINKS Y=(DIEPTE2 + (DIEPTEMEM_30 * 2))
+                   G02 X=LINKS Y=(DIEPTE2 + (DIEPTEMEM_30 * 2)) Z=MAX CR=RADIUS
+                   G01 X=RECHTS Y=(DIEPTE2 + (DIEPTEMEM_30 * 3))
+                   G02 X=RECHTS Y=(DIEPTE2 + (DIEPTEMEM_30 * 3)) Z=MIN CR=RADIUS
+                   G01 X=LINKS Y=(DIEPTE2 + (DIEPTEMEM_30 * 4))
+                   G02 X=LINKS Y=(DIEPTE2 + (DIEPTEMEM_30 * 4)) Z=MAX CR=RADIUS
+               DIEPTE2 = (DIEPTE2 + (DIEPTEMEM_30 * 4))
+            ENDFOR
+            OVR = 55;SNELREST
+            IF AANTAL_STAPPEN_REST > 0
+               FOR TELLER_2 = 1 TO AANTAL_STAPPEN_REST
+               G64 G01 X=RECHTS Y=(DIEPTE2 + (DIEPTEMEM_30 * 1)) Z=MAX
+                   G02 X=RECHTS Y=(DIEPTE2 + (DIEPTEMEM_30 * 1)) Z=MIN CR=RADIUS
+                   G01 X=LINKS Y=(DIEPTE2 + (DIEPTEMEM_30 * 2))
+                   G02 X=LINKS Y=(DIEPTE2 + (DIEPTEMEM_30 * 2)) Z=MAX CR=RADIUS
+                   G01 X=RECHTS Y=(DIEPTE2 + (DIEPTEMEM_30 * 3))
+                   G02 X=RECHTS Y=(DIEPTE2 + (DIEPTEMEM_30 * 3)) Z=MIN CR=RADIUS
+                   G01 X=LINKS Y=(DIEPTE2 + (DIEPTEMEM_30 * 4))
+                   G02 X=LINKS Y=(DIEPTE2 + (DIEPTEMEM_30 * 4)) Z=MAX CR=RADIUS
+               DIEPTE2 = (DIEPTE2 + (DIEPTEMEM_REST * 4))
+               ENDFOR
+            ENDIF
+            G00 X=RECHTS Z=MIN
+            G00 X=LINKS
+            G00 X=RECHTS Z=MAX
+            G00 X=LINKS
+            G00 Z=MIN
+            IF (LENGTE <= 50) OR (LENGTE >= 120)
+               G00 X=LRC_POS
+              ELSE
+               G00 X=RECHTS
+            ENDIF
+            G00 Y=-5
+         ENDIF
+         G00 Y=-5
+      ENDIF
+   ENDIF
+   STOPRE
+ENDFOR
+STOPRE
+IF (R5 == 1)
+   FXS[V8]=0
+   M54
+   STOPRE
+   G90 G64 G00 V=EINDPOSITIE_V8
+   STOPRE
+   M99
+ENDIF
+M72 M74
+
+EINDE:
+
+M17  ; ONDERPROGRAMMA EINDE
+ENDPROC
